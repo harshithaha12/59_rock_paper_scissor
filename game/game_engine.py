@@ -53,6 +53,12 @@ class GameEngine:
         # Task 3: Track player's move history
         self.player_move_history = []
 
+        # Task 4: Shake animation
+        self.shake_duration = 600
+        self.shake_start_time = 0
+        self.shaking = False
+        self.reveal_moves = True
+
         self.round_resolved_time = 0
         self.display_duration = 1800
         self.showing_result = False
@@ -60,6 +66,7 @@ class GameEngine:
         self.font_title = pygame.font.SysFont(None, 36)
         self.font_hud = pygame.font.SysFont(None, 26)
         self.font_arena = pygame.font.SysFont(None, 32)
+        self.font_icon = pygame.font.SysFont(None, 24)
 
     def determine_winner(self, player, cpu):
         if player == cpu:
@@ -79,23 +86,19 @@ class GameEngine:
 
     def choose_cpu_move(self):
         # Task 3: Adaptive CPU
-        # Give the CPU a few rounds to observe the player's pattern.
         if len(self.player_move_history) < 3:
             return random.choice(self.choices)
 
-        # Count how often the player has selected each move.
         move_counts = {
             choice: self.player_move_history.count(choice)
             for choice in self.choices
         }
 
-        # Find the player's most frequently selected move.
         most_frequent_move = max(
             move_counts,
             key=move_counts.get
         )
 
-        # Choose the move that counters the player's frequent move.
         counter_moves = {
             "ROCK": "PAPER",
             "PAPER": "SCISSORS",
@@ -104,7 +107,6 @@ class GameEngine:
 
         counter_move = counter_moves[most_frequent_move]
 
-        # Bias toward the counter while retaining randomness.
         if random.random() < 0.6:
             return counter_move
 
@@ -115,11 +117,11 @@ class GameEngine:
         if self.game_over:
             return
 
-        # Task 3: Track the player's move
+        # Task 3: Track player's move
         self.player_move_history.append(choice)
         self.player_choice = choice
 
-        # Task 3: Use adaptive CPU selection
+        # Task 3: Adaptive CPU
         self.cpu_choice = self.choose_cpu_move()
 
         outcome = self.determine_winner(
@@ -147,7 +149,7 @@ class GameEngine:
             )
             self.result_color = (240, 210, 80)
 
-        # Task 2: Check whether the match has ended
+        # Task 2: Check match winner
         if self.player_score >= self.target_score:
             self.game_over = True
             self.match_winner = "PLAYER"
@@ -160,11 +162,16 @@ class GameEngine:
             self.result_text = "GAME OVER! CPU WINS! Press R to reset."
             self.result_color = (240, 80, 80)
 
+        # Task 4: Start shake animation before revealing moves
+        self.shaking = True
+        self.reveal_moves = False
+        self.shake_start_time = pygame.time.get_ticks()
+
         self.showing_result = True
         self.round_resolved_time = pygame.time.get_ticks()
 
     def reset_match(self):
-        # Task 2: Reset the complete match
+        # Task 2: Reset complete match
         self.player_score = 0
         self.cpu_score = 0
 
@@ -180,6 +187,11 @@ class GameEngine:
         # Task 3: Reset adaptive CPU history
         self.player_move_history = []
 
+        # Task 4: Reset animation
+        self.shaking = False
+        self.reveal_moves = True
+        self.shake_start_time = 0
+
         self.showing_result = False
         self.round_resolved_time = 0
 
@@ -191,7 +203,6 @@ class GameEngine:
             return
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Do not allow moves after GAME_OVER
             if self.game_over:
                 return
 
@@ -203,12 +214,18 @@ class GameEngine:
     def update(self):
         now = pygame.time.get_ticks()
 
-        # Keep the GAME_OVER screen visible
+        # Task 4: Handle shake animation
+        if self.shaking:
+            if now - self.shake_start_time >= self.shake_duration:
+                self.shaking = False
+                self.reveal_moves = True
+
         if self.game_over:
             return
 
         if (
             self.showing_result
+            and not self.shaking
             and (now - self.round_resolved_time >= self.display_duration)
         ):
             self.player_choice = None
@@ -216,6 +233,112 @@ class GameEngine:
             self.result_text = "Make your move!"
             self.result_color = (190, 195, 205)
             self.showing_result = False
+            self.reveal_moves = True
+
+    def draw_rock(self, screen, x, y):
+        pygame.draw.circle(
+            screen,
+            (170, 170, 180),
+            (x, y),
+            45
+        )
+
+        pygame.draw.circle(
+            screen,
+            (110, 110, 120),
+            (x - 12, y - 12),
+            8
+        )
+
+        pygame.draw.circle(
+            screen,
+            (110, 110, 120),
+            (x + 15, y + 5),
+            6
+        )
+
+    def draw_paper(self, screen, x, y):
+        paper_rect = pygame.Rect(x - 35, y - 45, 70, 90)
+
+        pygame.draw.rect(
+            screen,
+            (235, 235, 240),
+            paper_rect,
+            border_radius=8
+        )
+
+        pygame.draw.rect(
+            screen,
+            (120, 120, 130),
+            paper_rect,
+            width=3,
+            border_radius=8
+        )
+
+        pygame.draw.line(
+            screen,
+            (160, 160, 170),
+            (x - 20, y - 20),
+            (x + 20, y - 20),
+            3
+        )
+
+        pygame.draw.line(
+            screen,
+            (160, 160, 170),
+            (x - 20, y),
+            (x + 20, y),
+            3
+        )
+
+        pygame.draw.line(
+            screen,
+            (160, 160, 170),
+            (x - 20, y + 20),
+            (x + 20, y + 20),
+            3
+        )
+
+    def draw_scissors(self, screen, x, y):
+        pygame.draw.line(
+            screen,
+            (220, 90, 90),
+            (x - 35, y - 25),
+            (x + 30, y + 30),
+            8
+        )
+
+        pygame.draw.line(
+            screen,
+            (220, 90, 90),
+            (x - 35, y + 25),
+            (x + 30, y - 30),
+            8
+        )
+
+        pygame.draw.circle(
+            screen,
+            (230, 180, 70),
+            (x - 35, y - 25),
+            12
+        )
+
+        pygame.draw.circle(
+            screen,
+            (230, 180, 70),
+            (x - 35, y + 25),
+            12
+        )
+
+    def draw_move_icon(self, screen, move, x, y):
+        if move == "ROCK":
+            self.draw_rock(screen, x, y)
+
+        elif move == "PAPER":
+            self.draw_paper(screen, x, y)
+
+        elif move == "SCISSORS":
+            self.draw_scissors(screen, x, y)
 
     def render(self, screen):
         screen.fill((24, 28, 36))
@@ -264,36 +387,92 @@ class GameEngine:
             2
         )
 
-        p_str = self.player_choice if self.player_choice else "--"
-        c_str = self.cpu_choice if self.cpu_choice else "--"
+        # Task 4: Move icon positions
+        player_x = self.width // 2 - 130
+        cpu_x = self.width // 2 + 130
+        icon_y = 145
 
-        arena_p = self.font_arena.render(
-            f"Your Pick:  {p_str}",
-            True,
-            (225, 225, 230)
-        )
+        if self.shaking:
+            shake_offset_player = random.randint(-10, 10)
+            shake_offset_cpu = random.randint(-10, 10)
 
-        arena_c = self.font_arena.render(
-            f"CPU Pick:  {c_str}",
-            True,
-            (225, 225, 230)
-        )
+            player_x += shake_offset_player
+            cpu_x += shake_offset_cpu
 
-        screen.blit(
-            arena_p,
-            (
-                self.width // 2 - arena_p.get_width() // 2,
-                115
+            self.draw_move_icon(
+                screen,
+                "ROCK",
+                player_x,
+                icon_y
             )
-        )
 
-        screen.blit(
-            arena_c,
-            (
-                self.width // 2 - arena_c.get_width() // 2,
-                155
+            self.draw_move_icon(
+                screen,
+                "ROCK",
+                cpu_x,
+                icon_y
             )
-        )
+
+            shake_text = self.font_arena.render(
+                "SHAKING...",
+                True,
+                (240, 210, 80)
+            )
+
+            screen.blit(
+                shake_text,
+                (
+                    self.width // 2 - shake_text.get_width() // 2,
+                    215
+                )
+            )
+
+        elif self.reveal_moves:
+            if self.player_choice:
+                self.draw_move_icon(
+                    screen,
+                    self.player_choice,
+                    player_x,
+                    icon_y
+                )
+
+            if self.cpu_choice:
+                self.draw_move_icon(
+                    screen,
+                    self.cpu_choice,
+                    cpu_x,
+                    icon_y
+                )
+
+            if self.player_choice:
+                player_label = self.font_icon.render(
+                    f"You: {self.player_choice}",
+                    True,
+                    (225, 225, 230)
+                )
+
+                screen.blit(
+                    player_label,
+                    (
+                        player_x - player_label.get_width() // 2,
+                        200
+                    )
+                )
+
+            if self.cpu_choice:
+                cpu_label = self.font_icon.render(
+                    f"CPU: {self.cpu_choice}",
+                    True,
+                    (225, 225, 230)
+                )
+
+                screen.blit(
+                    cpu_label,
+                    (
+                        cpu_x - cpu_label.get_width() // 2,
+                        200
+                    )
+                )
 
         res_surf = self.font_arena.render(
             self.result_text,
@@ -305,7 +484,7 @@ class GameEngine:
             res_surf,
             (
                 self.width // 2 - res_surf.get_width() // 2,
-                205
+                250
             )
         )
 
