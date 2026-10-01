@@ -50,6 +50,9 @@ class GameEngine:
         self.game_over = False
         self.match_winner = None
 
+        # Task 3: Track player's move history
+        self.player_move_history = []
+
         self.round_resolved_time = 0
         self.display_duration = 1800
         self.showing_result = False
@@ -74,13 +77,50 @@ class GameEngine:
 
         return rules.get((player, cpu), "TIE")
 
+    def choose_cpu_move(self):
+        # Task 3: Adaptive CPU
+        # Give the CPU a few rounds to observe the player's pattern.
+        if len(self.player_move_history) < 3:
+            return random.choice(self.choices)
+
+        # Count how often the player has selected each move.
+        move_counts = {
+            choice: self.player_move_history.count(choice)
+            for choice in self.choices
+        }
+
+        # Find the player's most frequently selected move.
+        most_frequent_move = max(
+            move_counts,
+            key=move_counts.get
+        )
+
+        # Choose the move that counters the player's frequent move.
+        counter_moves = {
+            "ROCK": "PAPER",
+            "PAPER": "SCISSORS",
+            "SCISSORS": "ROCK",
+        }
+
+        counter_move = counter_moves[most_frequent_move]
+
+        # Bias toward the counter while retaining randomness.
+        if random.random() < 0.6:
+            return counter_move
+
+        return random.choice(self.choices)
+
     def play_round(self, choice):
         # Task 2: Do not allow another round after GAME_OVER
         if self.game_over:
             return
 
+        # Task 3: Track the player's move
+        self.player_move_history.append(choice)
         self.player_choice = choice
-        self.cpu_choice = random.choice(self.choices)
+
+        # Task 3: Use adaptive CPU selection
+        self.cpu_choice = self.choose_cpu_move()
 
         outcome = self.determine_winner(
             self.player_choice,
@@ -137,6 +177,9 @@ class GameEngine:
         self.game_over = False
         self.match_winner = None
 
+        # Task 3: Reset adaptive CPU history
+        self.player_move_history = []
+
         self.showing_result = False
         self.round_resolved_time = 0
 
@@ -182,6 +225,7 @@ class GameEngine:
             True,
             (245, 245, 245)
         )
+
         screen.blit(
             title_surf,
             (
@@ -203,9 +247,13 @@ class GameEngine:
         )
 
         screen.blit(p_surf, (35, 52))
+
         screen.blit(
             c_surf,
-            (self.width - c_surf.get_width() - 35, 52)
+            (
+                self.width - c_surf.get_width() - 35,
+                52
+            )
         )
 
         pygame.draw.line(
