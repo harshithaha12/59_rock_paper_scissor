@@ -68,6 +68,7 @@ The game displays picks only as simple plain text strings. Enhance game_engine.r
 
 ## Folder Structure
 
+```text
 59_rock_paper_scissor/
 ├── Lab-4/
 │   ├── before.mp4
