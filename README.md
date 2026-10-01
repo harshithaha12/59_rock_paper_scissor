@@ -68,8 +68,11 @@ The game displays picks only as simple plain text strings. Enhance game_engine.r
 
 ## Folder Structure
 
-```
-rock_paper_scissors/
+59_rock_paper_scissor/
+├── Lab-4/
+│   ├── before.mp4
+│   ├── after.mp4
+│   └── chat_history.pdf
 ├── game/
 │   ├── button.py
 │   └── game_engine.py
